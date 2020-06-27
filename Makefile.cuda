@@ -1,0 +1,18 @@
+CC = /usr/local/cuda/bin/nvcc
+
+CCFLAGS :=  -g -D_GNU_SOURCE -std=c++11 -DCUDA_CUDNN_APP=1
+LDFLAGS := -O2 -lcudnn 
+
+PROGRAMS := testReduceTensor testCuda
+
+all: $(PROGRAMS)
+
+# Step
+testCuda: testCuda.cu
+	$(CC) $(CCFLAGS) $(LDFLAGS) $< -o $@
+
+testReduceTensor:  testReduceTensor.cu
+	$(CC) $(CCFLAGS) $(LDFLAGS) $< -o $@
+
+clean:
+	rm -f *.o $(PROGRAMS)
