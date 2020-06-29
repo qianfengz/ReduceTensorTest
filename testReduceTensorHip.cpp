@@ -153,7 +153,11 @@ public:
                                       outDesc,
                                       outDevData) );
 
-       MY_HIP_CHECK( hipDeviceSynchronize() ); 
+       hipStream_t stream; 
+
+       MY_MIOPEN_CHECK( miopenGetStream(handle,&stream) ); 
+
+       MY_HIP_CHECK( hipStreamSynchronize(stream) ); 
 
        execEnd = system_clock::now(); 
 
