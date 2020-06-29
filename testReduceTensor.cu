@@ -156,7 +156,11 @@ public:
 
        MY_CUDA_CHECK( cudaMemcpy(outHostData.data(), outDevData, szOutData, cudaMemcpyDeviceToHost) );
 
-       MY_CUDA_CHECK( cudaDeviceSynchronize() ); 
+       cudaStream_t  stream; 
+
+       MY_CUDNN_CHECK( cudnnGetStream(handle, &stream) ); 
+
+       MY_CUDA_CHECK( cudaStreamSynchronize(stream) ); 
 
        execEnd = system_clock::now(); 
 
