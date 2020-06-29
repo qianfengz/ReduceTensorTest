@@ -84,10 +84,18 @@ public:
                    op = static_cast<cudnnReduceTensorOp_t>(op);
                    break;
                case 'N':
+#ifdef CUDA_CUDNN_APP		   
                    nanPropaOpt = CUDNN_PROPAGATE_NAN;
+#else
+                   nanPropaOpt = MIOPEN_PROPAGATE_NAN;
+#endif		   
                    break;
                case 'I':
+#ifdef CUDA_CUDNN_APP		   
                    indicesOpt = CUDNN_REDUCE_TENSOR_FLATTENED_INDICES;
+#else
+                   indicesOpt = MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES;
+#endif 
                    break;
                case 'V':
 	           doVerify = true; 
@@ -138,14 +146,13 @@ protected:
     cudnnNanPropagation_t nanPropaOpt =  CUDNN_NOT_PROPAGATE_NAN;
     cudnnReduceTensorIndices_t indicesOpt = CUDNN_REDUCE_TENSOR_NO_INDICES;
     cudnnIndicesType_t indicesType = CUDNN_32BIT_INDICES;
-#endif
-#ifdef HIP_MIOPEN_APP
+#else
     miopenReduceTensorOp_t op = MIOPEN_REDUCE_TENSOR_ADD;
-    miopenDataType_t dataType = CUDNN_DATA_FLOAT;
-    miopenDataType_t compType = CUDNN_DATA_FLOAT;
-    miopenNanPropagation_t nanPropaOpt =  CUDNN_NOT_PROPAGATE_NAN;
-    miopenReduceTensorIndices_t indicesOpt = CUDNN_REDUCE_TENSOR_NO_INDICES;
-    miopenIndicesType_t indicesType = CUDNN_32BIT_INDICES;
+    miopenDataType_t dataType = MIOPEN_DATA_FLOAT;
+    miopenDataType_t compType = MIOPEN_DATA_FLOAT;
+    miopenNanPropagation_t nanPropaOpt =  MIOPEN_NOT_PROPAGATE_NAN;
+    miopenReduceTensorIndices_t indicesOpt = MIOPEN_REDUCE_TENSOR_NO_INDICES;
+    miopenIndicesType_t indicesType = MIOPEN_32BIT_INDICES;
 #endif
     std::vector<int> inLengths;
     std::vector<int> inStrides;
