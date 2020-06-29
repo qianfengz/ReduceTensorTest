@@ -1,5 +1,5 @@
-#include <cuda.h>
-#include <cudnn.h>
+#include <hip/hip_runtime.h>
+#include <miopen/miopen.h>
 
 #include <iostream>
 #include <sstream>
@@ -11,23 +11,23 @@
 #include "hostReduce.hpp"
 #include "appArgs.hpp"
 
-#define MY_CUDA_CHECK(flag)                                                                                                     \
+#define MY_HIP_CHECK(flag)                                                                                                     \
     do  {                                                                                                                       \
-        cudaError_t _tmpVal;                                                                                                    \
-        if ( (_tmpVal = flag) != cudaSuccess )  {                                                                               \
+        hipError_t _tmpVal;                                                                                                    \
+        if ( (_tmpVal = flag) != hipSuccess )  {                                                                               \
             std::ostringstream ostr;                                                                                            \
-            ostr << "CUDNN Function Failed (" <<  __FILE__ << "," <<  __LINE__ << ") " << cudaGetErrorString(_tmpVal);          \
+            ostr << "HIP Function Failed (" <<  __FILE__ << "," <<  __LINE__ << ") " << hipGetErrorString(_tmpVal);          \
             throw std::runtime_error(ostr.str());                                                                               \
         }                                                                                                                       \
     }                                                                                                                           \
     while (0)
 
-#define MY_CUDNN_CHECK(flag)                                                                                      \
+#define MY_MIOPEN_CHECK(flag)                                                                                     \
     do  {                                                                                                         \
-        cudnnStatus_t  _tmpVal;                                                                                   \
-        if ( (_tmpVal = flag) != CUDNN_STATUS_SUCCESS )  {                                                        \
+        miopenStatus_t  _tmpVal;                                                                                  \
+        if ( (_tmpVal = flag) != miopenStatusSuccess )  {                                                         \
             std::ostringstream ostr;                                                                              \
-            ostr << "CUDNN Function Failed (" <<  __FILE__ << "," <<  __LINE__ << "), error code = " << _tmpVal;  \
+            ostr << "MIOPEN Function Failed (" <<  __FILE__ << "," <<  __LINE__ << "), error code = " << _tmpVal;  \
             throw std::runtime_error(ostr.str());                                                                 \
         }                                                                                                         \
     }                                                                                                             \
@@ -56,31 +56,31 @@ public:
 
     void prepare() 
     {
-       MY_CUDNN_CHECK( cudnnCreate(&handle) );
-       MY_CUDNN_CHECK( cudnnCreateReduceTensorDescriptor(&reduceDesc) );
+       MY_MIOPEN_CHECK( miopenCreate(&handle) );
+       MY_MIOPEN_CHECK( miopenCreateReduceTensorDescriptor(&reduceDesc) );
 
-       MY_CUDNN_CHECK( cudnnSetReduceTensorDescriptor(reduceDesc, op, compType, nanPropaOpt, indicesOpt, indicesType) );	    
+       MY_MIOPEN_CHECK( miopenSetReduceTensorDescriptor(reduceDesc, op, compType, nanPropaOpt, indicesOpt, indicesType) );	    
 
-       MY_CUDNN_CHECK( cudnnCreateTensorDescriptor(&inDesc) );
-       MY_CUDNN_CHECK( cudnnCreateTensorDescriptor(&outDesc) );
+       MY_MIOPEN_CHECK( miopenCreateTensorDescriptor(&inDesc) );
+       MY_MIOPEN_CHECK( miopenCreateTensorDescriptor(&outDesc) );
 
-       MY_CUDNN_CHECK( cudnnSetTensorNdDescriptor(inDesc, dataType, inLengths.size(), inLengths.data(), inStrides.data()) );
-       MY_CUDNN_CHECK( cudnnSetTensorNdDescriptor(outDesc, dataType, outLengths.size(), outLengths.data(), outStrides.data()) );       
+       MY_MIOPEN_CHECK( miopenSetTensorDescriptor(inDesc, dataType, inLengths.size(), inLengths.data(), inStrides.data()) );
+       MY_MIOPEN_CHECK( miopenSetTensorDescriptor(outDesc, dataType, outLengths.size(), outLengths.data(), outStrides.data()) );       
 
-       MY_CUDNN_CHECK( cudnnGetTensorSizeInBytes(inDesc, &szInData) ); 
-       MY_CUDNN_CHECK( cudnnGetTensorSizeInBytes(outDesc, &szOutData) ); 
+       MY_MIOPEN_CHECK( miopenGetTensorNumBytes(inDesc, &szInData) ); 
+       MY_MIOPEN_CHECK( miopenGetTensorNumBytes(outDesc, &szOutData) ); 
 
-       MY_CUDA_CHECK( cudaMalloc(&inDevData, szInData) ); 
-       MY_CUDA_CHECK( cudaMalloc(&outDevData, szOutData) ); 
+       MY_HIP_CHECK( hipMalloc(&inDevData, szInData) ); 
+       MY_HIP_CHECK( hipMalloc(&outDevData, szOutData) ); 
 
-       MY_CUDNN_CHECK( cudnnGetReductionIndicesSize(handle, reduceDesc, inDesc, outDesc, &szIndices) ); 
-       MY_CUDNN_CHECK( cudnnGetReductionWorkspaceSize(handle, reduceDesc, inDesc, outDesc, &szWorkspace) ); 
+       MY_MIOPEN_CHECK( miopenGetReductionIndicesSize(handle, reduceDesc, inDesc, outDesc, &szIndices) ); 
+       MY_MIOPEN_CHECK( miopenGetReductionWorkSpaceSize(handle, reduceDesc, inDesc, outDesc, &szWorkspace) ); 
 
        if ( szIndices > 0 )
-            MY_CUDA_CHECK( cudaMalloc(&indicesBuffer, szIndices) );
+            MY_HIP_CHECK( hipMalloc(&indicesBuffer, szIndices) );
 
        if ( szWorkspace > 0 )
-            MY_CUDA_CHECK( cudaMalloc(&workspaceBuffer, szWorkspace) );
+            MY_HIP_CHECK( hipMalloc(&workspaceBuffer, szWorkspace) );
 
        inHostData.resize( szInData/ sizeof(float) ); 
        outHostData.resize( szOutData/ sizeof(float) ); 
@@ -92,15 +92,14 @@ public:
        std::fill(outHostData.begin(), outHostData.end(), 0.0f);
        std::fill(outHostData2.begin(), outHostData2.end(), 0.0f);
 
-       MY_CUDA_CHECK( cudaMemcpy(inDevData, inHostData.data(), szInData, cudaMemcpyHostToDevice) );
-       MY_CUDA_CHECK( cudaMemcpy(outDevData, outHostData.data(), szOutData, cudaMemcpyHostToDevice) );
-       
+       MY_HIP_CHECK( hipMemcpy(inDevData, inHostData.data(), szInData, hipMemcpyHostToDevice) );
+       MY_HIP_CHECK( hipMemcpy(outDevData, outHostData.data(), szOutData, hipMemcpyHostToDevice) );
     }; 
 
     void run() 
     {
-       // run cudnnReduceTensor() the first time, the kernels could be compiled here, which consume unexpected time
-       MY_CUDNN_CHECK( cudnnReduceTensor(handle, reduceDesc,
+       // run miopenReduceTensor() the first time, the kernels could be compiled here, which consume unexpected time
+       MY_MIOPEN_CHECK( miopenReduceTensor(handle, reduceDesc,
                                       szIndices? indicesBuffer : nullptr, szIndices,
                                       szWorkspace? workspaceBuffer : nullptr, szWorkspace,
                                       &alpha,
@@ -110,17 +109,17 @@ public:
                                       outDesc,
                                       outDevData) );
 
-       MY_CUDA_CHECK( cudaMemcpy(outHostData.data(), outDevData, szOutData, cudaMemcpyDeviceToHost) );
+       MY_HIP_CHECK( hipMemcpy(outHostData.data(), outDevData, szOutData, hipMemcpyDeviceToHost) );
 
        if ( szIndices > 0 ) {
             std::vector<int> outIndices;
             outIndices.resize( szIndices/sizeof(int) );
 
-            MY_CUDA_CHECK( cudaMemcpy(outIndices.data(), indicesBuffer, szIndices, cudaMemcpyDeviceToHost) );
+            MY_HIP_CHECK( hipMemcpy(outIndices.data(), indicesBuffer, szIndices, hipMemcpyDeviceToHost) );
        };
 
        // For the most common situtaion, we do verification
-       if ( doVerify && (dataType == CUDNN_DATA_FLOAT && compType == CUDNN_DATA_FLOAT && op == CUDNN_REDUCE_TENSOR_ADD) ) {
+       if ( doVerify && (dataType == miopenFloat && compType == miopenFloat && op == MIOPEN_REDUCE_TENSOR_ADD) ) {
             summationHost<float> summation(inLengths, outLengths, inStrides, outStrides, invariantDims, toReduceDims);
 
             summation.Run(alpha, inHostData.data(), beta, outHostData2.data());
@@ -143,8 +142,8 @@ public:
 
        execStart = system_clock::now();  
 
-       // run cudnnReduceTensor() the second time 
-       MY_CUDNN_CHECK( cudnnReduceTensor(handle, reduceDesc,
+       // run miopenReduceTensor() the second time 
+       MY_MIOPEN_CHECK( miopenReduceTensor(handle, reduceDesc,
                                       szIndices? indicesBuffer : nullptr, szIndices,
                                       szWorkspace? workspaceBuffer : nullptr, szWorkspace,
                                       &alpha,
@@ -154,25 +153,26 @@ public:
                                       outDesc,
                                       outDevData) );
 
-       MY_CUDA_CHECK( cudaMemcpy(outHostData.data(), outDevData, szOutData, cudaMemcpyDeviceToHost) );
-
-       MY_CUDA_CHECK( cudaDeviceSynchronize() ); 
+       MY_HIP_CHECK( hipDeviceSynchronize() ); 
 
        execEnd = system_clock::now(); 
+
+       MY_HIP_CHECK( hipMemcpy(outHostData.data(), outDevData, szOutData, hipMemcpyDeviceToHost) );
 
        if ( szIndices > 0 ) {
             std::vector<int> outIndices;
             outIndices.resize( szIndices/sizeof(int) );
 
-            MY_CUDA_CHECK( cudaMemcpy(outIndices.data(), indicesBuffer, szIndices, cudaMemcpyDeviceToHost) );
+            MY_HIP_CHECK( hipMemcpy(outIndices.data(), indicesBuffer, szIndices, hipMemcpyDeviceToHost) );
        };
+
     }; 
 
     void showTime()
     {
        std::chrono::nanoseconds tv = execEnd - execStart; 
 
-       std::cout << "cudnnReduceTensor: " << std::endl; 
+       std::cout << "miopenReduceTensor: " << std::endl; 
        std::cout << "Input tensor dimensions : "; 
        for (auto len : inLengths) 
 	    std::cout << len << " "; 
@@ -190,11 +190,11 @@ public:
 
 private: 
 
-    cudnnHandle_t handle;
-    cudnnReduceTensorDescriptor_t reduceDesc;
+    miopenHandle_t handle;
+    miopenReduceTensorDescriptor_t reduceDesc;
  
-    cudnnTensorDescriptor_t inDesc; 
-    cudnnTensorDescriptor_t outDesc; 
+    miopenTensorDescriptor_t inDesc; 
+    miopenTensorDescriptor_t outDesc; 
 
     size_t szInData;
     size_t szOutData; 

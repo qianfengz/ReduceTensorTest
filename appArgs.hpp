@@ -81,7 +81,11 @@ public:
                    toReduceDims = get_int_sequence(optarg);
                    break;
                case 'O':
+#ifdef CUDA_CUDNN_APP		   
                    op = static_cast<cudnnReduceTensorOp_t>(op);
+#else
+                   op = static_cast<miopenReduceTensorOp_t>(op);
+#endif		   
                    break;
                case 'N':
 #ifdef CUDA_CUDNN_APP		   
@@ -148,8 +152,8 @@ protected:
     cudnnIndicesType_t indicesType = CUDNN_32BIT_INDICES;
 #else
     miopenReduceTensorOp_t op = MIOPEN_REDUCE_TENSOR_ADD;
-    miopenDataType_t dataType = MIOPEN_DATA_FLOAT;
-    miopenDataType_t compType = MIOPEN_DATA_FLOAT;
+    miopenDataType_t dataType = miopenFloat;
+    miopenDataType_t compType = miopenFloat;
     miopenNanPropagation_t nanPropaOpt =  MIOPEN_NOT_PROPAGATE_NAN;
     miopenReduceTensorIndices_t indicesOpt = MIOPEN_REDUCE_TENSOR_NO_INDICES;
     miopenIndicesType_t indicesType = MIOPEN_32BIT_INDICES;
