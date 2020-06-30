@@ -47,9 +47,7 @@ static T RAN_GEN(T A, T B)
     return r;
 }
 
-using std::chrono::steady_clock;
-
-class TestApp : public AppArgs 
+class TestApp : public AppArgs, public AppTimer
 {
 public:
     TestApp() 
@@ -115,6 +113,10 @@ public:
 
     void run() 
     {
+       using std::chrono::steady_clock;
+
+       zeroPoint = steady_clock::now();
+	    
        // run cudnnReduceTensor() the first time, the kernels could be compiled here, which consume unexpected time
        MY_CUDNN_CHECK( cudnnReduceTensor(handle, reduceDesc,
                                       szIndices? indicesBuffer : nullptr, szIndices,
@@ -190,24 +192,6 @@ public:
        };
     }; 
 
-    void showTime()
-    {
-       std::chrono::nanoseconds tv = execEnd - execStart; 
-
-       std::cout << "cudnnReduceTensor: " << std::endl; 
-       std::cout << "Input tensor dimensions : "; 
-       for (auto len : inLengths) 
-	    std::cout << len << " "; 
-       std::cout << std::endl; 
-
-       std::cout << "To reduce dimensions : "; 
-       for (auto ind : toReduceDims)
-	    std::cout << ind << " "; 
-       std::cout << std::endl; 
-
-       std::cout << "The execution time for one call is " << tv.count() / 1000 << " microseconds. " << std::endl; 
-    }; 
-
     ~TestApp() noexcept(false)
     {
        if ( constructed ) {
@@ -225,6 +209,11 @@ public:
             if ( workspaceBuffer )
                  MY_CUDA_CHECK( cudaFree(workspaceBuffer) );
        };
+    };
+
+    void showTest()
+    {
+         showTime(this->inLengths, this->toReduceDims);
     };
 
 private: 
@@ -254,9 +243,6 @@ private:
 
     const float alpha = 1.0f; 
     const float beta = 0.0f; 
-
-    steady_clock::time_point execStart; 
-    steady_clock::time_point execEnd; 
 }; 
 
 int main(int argc, char *argv[])
@@ -266,7 +252,7 @@ int main(int argc, char *argv[])
      if ( myApp.processArgs(argc, argv) == 0 ) {
           myApp.prepare(); 
           myApp.run(); 
-          myApp.showTime(); 
+          myApp.showTest(); 
      }; 
 }; 
 
