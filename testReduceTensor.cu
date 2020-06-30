@@ -170,8 +170,6 @@ public:
                                       outDesc,
                                       outDevData) );
 
-       MY_CUDA_CHECK( cudaMemcpy(outHostData.data(), outDevData, szOutData, cudaMemcpyDeviceToHost) );
-
        cudaStream_t  stream; 
 
        MY_CUDNN_CHECK( cudnnGetStream(handle, &stream) ); 
@@ -179,6 +177,8 @@ public:
        MY_CUDA_CHECK( cudaStreamSynchronize(stream) ); 
 
        execEnd = steady_clock::now(); 
+
+       MY_CUDA_CHECK( cudaMemcpy(outHostData.data(), outDevData, szOutData, cudaMemcpyDeviceToHost) );
 
        if ( szIndices > 0 ) {
             std::vector<int> outIndices;
