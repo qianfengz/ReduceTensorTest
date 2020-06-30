@@ -74,7 +74,7 @@ public:
        MY_HIP_CHECK( hipMalloc(&outDevData, szOutData) ); 
 
        MY_MIOPEN_CHECK( miopenGetReductionIndicesSize(handle, reduceDesc, inDesc, outDesc, &szIndices) ); 
-       MY_MIOPEN_CHECK( miopenGetReductionWorkSpaceSize(handle, reduceDesc, inDesc, outDesc, &szWorkspace) ); 
+       MY_MIOPEN_CHECK( miopenGetReductionWorkspaceSize(handle, reduceDesc, inDesc, outDesc, &szWorkspace) ); 
 
        if ( szIndices > 0 )
             MY_HIP_CHECK( hipMalloc(&indicesBuffer, szIndices) );
@@ -139,6 +139,8 @@ public:
             if ( max_error  < epsilon )
                  std::cout << "Verification succeeded!"  << std::endl;
        }
+
+       MY_HIP_CHECK( hipDeviceSynchronize() ); 
 
        execStart = system_clock::now();  
 
