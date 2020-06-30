@@ -47,7 +47,7 @@ static T RAN_GEN(T A, T B)
     return r;
 }
 
-using std::chrono::system_clock;
+using std::chrono::steady_clock;
 
 class TestApp : public AppArgs 
 {
@@ -157,7 +157,7 @@ public:
                  std::cout << "Verification succeeded!"  << std::endl;
        }
 
-       execStart = system_clock::now();  
+       execStart = steady_clock::now();  
 
        // run cudnnReduceTensor() the second time 
        MY_CUDNN_CHECK( cudnnReduceTensor(handle, reduceDesc,
@@ -178,7 +178,7 @@ public:
 
        MY_CUDA_CHECK( cudaStreamSynchronize(stream) ); 
 
-       execEnd = system_clock::now(); 
+       execEnd = steady_clock::now(); 
 
        if ( szIndices > 0 ) {
             std::vector<int> outIndices;
@@ -253,8 +253,8 @@ private:
     const float alpha = 1.0f; 
     const float beta = 0.0f; 
 
-    system_clock::time_point execStart; 
-    system_clock::time_point execEnd; 
+    steady_clock::time_point execStart; 
+    steady_clock::time_point execEnd; 
 }; 
 
 int main(int argc, char *argv[])
