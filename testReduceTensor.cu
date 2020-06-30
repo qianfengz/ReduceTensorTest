@@ -52,7 +52,22 @@ using std::chrono::system_clock;
 class TestApp : public AppArgs 
 {
 public:
-    TestApp() = default; 
+    TestApp() 
+    {
+        szInData = 0;
+        szOutData = 0;
+
+        inDevData = nullptr; 
+        outDevData = nullptr; 
+
+        szIndices = 0;
+        szWorkspace = 0;
+
+        indicesBuffer = nullptr; 
+        workspaceBuffer = nullptr; 
+
+        constructed = false; 
+    }; 
 
     void prepare() 
     {
@@ -94,7 +109,8 @@ public:
 
        MY_CUDA_CHECK( cudaMemcpy(inDevData, inHostData.data(), szInData, cudaMemcpyHostToDevice) );
        MY_CUDA_CHECK( cudaMemcpy(outDevData, outHostData.data(), szOutData, cudaMemcpyHostToDevice) );
-       
+
+       constructed = true; 
     }; 
 
     void run() 
@@ -145,8 +161,8 @@ public:
 
        // run cudnnReduceTensor() the second time 
        MY_CUDNN_CHECK( cudnnReduceTensor(handle, reduceDesc,
-                                      szIndices? indicesBuffer : nullptr, szIndices,
-                                      szWorkspace? workspaceBuffer : nullptr, szWorkspace,
+                                      indicesBuffer ? indicesBuffer : nullptr, szIndices,
+                                      workspaceBuffer ? workspaceBuffer : nullptr, szWorkspace,
                                       &alpha,
                                       inDesc,
                                       inDevData,
@@ -192,22 +208,25 @@ public:
 
     ~TestApp() noexcept(false)
     {
-       MY_CUDNN_CHECK( cudnnDestroyReduceTensorDescriptor(reduceDesc) );
+       if ( constructed ) {
+            MY_CUDNN_CHECK( cudnnDestroyReduceTensorDescriptor(reduceDesc) );
 
-       MY_CUDNN_CHECK( cudnnDestroyTensorDescriptor(inDesc) );
-       MY_CUDNN_CHECK( cudnnDestroyTensorDescriptor(outDesc) );
+            MY_CUDNN_CHECK( cudnnDestroyTensorDescriptor(inDesc) );
+            MY_CUDNN_CHECK( cudnnDestroyTensorDescriptor(outDesc) );
 
-       MY_CUDA_CHECK( cudaFree(inDevData) );
-       MY_CUDA_CHECK( cudaFree(outDevData) );
+            MY_CUDA_CHECK( cudaFree(inDevData) );
+            MY_CUDA_CHECK( cudaFree(outDevData) );
 
-       if ( szIndices > 0 )
-            MY_CUDA_CHECK( cudaFree(indicesBuffer) );
+            if ( indicesBuffer )
+                 MY_CUDA_CHECK( cudaFree(indicesBuffer) );
 
-       if ( szWorkspace > 0 )
-            MY_CUDA_CHECK( cudaFree(workspaceBuffer) );
+            if ( workspaceBuffer )
+                 MY_CUDA_CHECK( cudaFree(workspaceBuffer) );
+       };
     };
 
 private: 
+    bool constructed; 
 
     cudnnHandle_t handle;
     cudnnReduceTensorDescriptor_t reduceDesc;

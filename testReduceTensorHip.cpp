@@ -52,7 +52,22 @@ using std::chrono::system_clock;
 class TestApp : public AppArgs 
 {
 public:
-    TestApp() = default; 
+    TestApp()
+    {
+        szInData = 0;
+        szOutData = 0;
+
+        inDevData = nullptr;
+        outDevData = nullptr;
+
+        szIndices = 0;
+        szWorkspace = 0;
+
+        indicesBuffer = nullptr;
+        workspaceBuffer = nullptr;
+
+        constructed = false;
+    };
 
     void prepare() 
     {
@@ -146,8 +161,8 @@ public:
 
        // run miopenReduceTensor() the second time 
        MY_MIOPEN_CHECK( miopenReduceTensor(handle, reduceDesc,
-                                      szIndices? indicesBuffer : nullptr, szIndices,
-                                      szWorkspace? workspaceBuffer : nullptr, szWorkspace,
+                                      indicesBuffer?  indicesBuffer : nullptr, szIndices,
+                                      workspaceBuffer? workspaceBuffer : nullptr, szWorkspace,
                                       &alpha,
                                       inDesc,
                                       inDevData,
@@ -194,22 +209,25 @@ public:
 
     ~TestApp() noexcept(false)
     {
-       MY_MIOPEN_CHECK( miopenDestroyReduceTensorDescriptor(reduceDesc) ); 
+       if ( constructed ) {
+            MY_MIOPEN_CHECK( miopenDestroyReduceTensorDescriptor(reduceDesc) ); 
 
-       MY_MIOPEN_CHECK( miopenDestroyTensorDescriptor(inDesc) ); 
-       MY_MIOPEN_CHECK( miopenDestroyTensorDescriptor(outDesc) ); 
+            MY_MIOPEN_CHECK( miopenDestroyTensorDescriptor(inDesc) ); 
+            MY_MIOPEN_CHECK( miopenDestroyTensorDescriptor(outDesc) ); 
 
-       MY_HIP_CHECK( hipFree(inDevData) ); 
-       MY_HIP_CHECK( hipFree(outDevData) ); 
+            MY_HIP_CHECK( hipFree(inDevData) ); 
+            MY_HIP_CHECK( hipFree(outDevData) ); 
 
-       if ( szIndices > 0 )
-            MY_HIP_CHECK( hipFree(indicesBuffer) );
+            if ( szIndices > 0 )
+                 MY_HIP_CHECK( hipFree(indicesBuffer) );
 
-       if ( szWorkspace > 0 )
-            MY_HIP_CHECK( hipFree(workspaceBuffer) );
+            if ( szWorkspace > 0 )
+                 MY_HIP_CHECK( hipFree(workspaceBuffer) );
+        }; 	
     };  
 
 private: 
+    bool constructed; 
 
     miopenHandle_t handle;
     miopenReduceTensorDescriptor_t reduceDesc;
