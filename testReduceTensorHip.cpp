@@ -218,10 +218,10 @@ public:
             MY_HIP_CHECK( hipFree(inDevData) ); 
             MY_HIP_CHECK( hipFree(outDevData) ); 
 
-            if ( szIndices > 0 )
+            if ( indicesBuffer )
                  MY_HIP_CHECK( hipFree(indicesBuffer) );
 
-            if ( szWorkspace > 0 )
+            if ( workspaceBuffer )
                  MY_HIP_CHECK( hipFree(workspaceBuffer) );
         }; 	
     };  

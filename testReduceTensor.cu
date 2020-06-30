@@ -157,6 +157,8 @@ public:
                  std::cout << "Verification succeeded!"  << std::endl;
        }
 
+       MY_CUDA_CHECK( cudaDeviceSynchronize() ); 
+
        execStart = steady_clock::now();  
 
        // run cudnnReduceTensor() the second time 
