@@ -10,6 +10,7 @@
 
 #include "hostReduce.hpp"
 #include "appArgs.hpp"
+#include "appTimer.hpp"
 
 #define MY_CUDA_CHECK(flag)                                                                                                     \
     do  {                                                                                                                       \
@@ -213,7 +214,7 @@ public:
 
     void showTest()
     {
-         showTime(this->inLengths, this->toReduceDims);
+         showSolvingTime(this->inLengths, this->toReduceDims);
     };
 
 private: 
