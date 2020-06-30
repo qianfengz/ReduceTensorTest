@@ -190,7 +190,22 @@ public:
        std::cout << "The execution time for one call is " << tv.count() / 1000 << " microseconds. " << std::endl; 
     }; 
 
-    ~TestApp() = default;  
+    ~TestApp() noexcept(false)
+    {
+       MY_CUDNN_CHECK( cudnnDestroyReduceTensorDescriptor(reduceDesc) );
+
+       MY_CUDNN_CHECK( cudnnDestroyTensorDescriptor(inDesc) );
+       MY_CUDNN_CHECK( cudnnDestroyTensorDescriptor(outDesc) );
+
+       MY_CUDA_CHECK( cudaFree(inDevData) );
+       MY_CUDA_CHECK( cudaFree(outDevData) );
+
+       if ( szIndices > 0 )
+            MY_CUDA_CHECK( cudaFree(indicesBuffer) );
+
+       if ( szWorkspace > 0 )
+            MY_CUDA_CHECK( cudaFree(workspaceBuffer) );
+    };
 
 private: 
 

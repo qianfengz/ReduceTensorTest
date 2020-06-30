@@ -192,7 +192,22 @@ public:
        std::cout << "The execution time for one call is " << tv.count() / 1000 << " microseconds. " << std::endl; 
     }; 
 
-    ~TestApp() = default;  
+    ~TestApp() noexcept(false)
+    {
+       MY_MIOPEN_CHECK( miopenDestroyReduceTensorDescriptor(reduceDesc) ); 
+
+       MY_MIOPEN_CHECK( miopenDestroyTensorDescriptor(inDesc) ); 
+       MY_MIOPEN_CHECK( miopenDestroyTensorDescriptor(outDesc) ); 
+
+       MY_HIP_CHECK( hipFree(inDevData) ); 
+       MY_HIP_CHECK( hipFree(outDevData) ); 
+
+       if ( szIndices > 0 )
+            MY_HIP_CHECK( hipFree(indicesBuffer) );
+
+       if ( szWorkspace > 0 )
+            MY_HIP_CHECK( hipFree(workspaceBuffer) );
+    };  
 
 private: 
 
