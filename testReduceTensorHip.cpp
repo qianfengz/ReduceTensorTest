@@ -160,6 +160,8 @@ public:
 
        MY_HIP_CHECK( hipDeviceSynchronize() ); 
 
+        __asm__ __volatile__ (""::: "memory"); 
+
        execStart = steady_clock::now();  
 
        // run miopenReduceTensor() the second time 
