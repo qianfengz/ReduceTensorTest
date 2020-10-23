@@ -34,13 +34,15 @@
     }                                                                                                             \
     while (0)
 
+// get a random float value in the range [0.0f, 1.0f]
 template <typename T>
 static T FRAND(void)
 {
-    float d = static_cast<float>(rand() / (static_cast<float>(RAND_MAX)));
+    float d = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
     return static_cast<T>(d);
 }
 
+// get a random float value in the range [A, B]
 template <typename T>
 static T RAN_GEN(T A, T B)
 {
@@ -160,8 +162,6 @@ public:
 
        MY_HIP_CHECK( hipDeviceSynchronize() ); 
 
-        __asm__ __volatile__ (""::: "memory"); 
-
        execStart = steady_clock::now();  
 
        // run miopenReduceTensor() the second time 
@@ -191,7 +191,6 @@ public:
 
             MY_HIP_CHECK( hipMemcpy(outIndices.data(), indicesBuffer, szIndices, hipMemcpyDeviceToHost) );
        };
-
     }; 
 
     ~TestApp() noexcept(false)

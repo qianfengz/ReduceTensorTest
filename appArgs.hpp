@@ -114,9 +114,13 @@ public:
            }
         }
 
-        assert(toReduceDims.size() <= inLengths.size());
-        for(int i = 0; i < toReduceDims.size(); i++)
-            assert(toReduceDims[i] < inLengths.size());
+        if ( inLengths.empty() || toReduceDims.empty() || toReduceDims.size() > inLengths.size() ) 
+             throw std::runtime_error("Wrong command-line format/parameters!");
+
+        for(const auto & dimIndex : toReduceDims) 
+            if ( dimIndex >= inLengths.size() ) 
+                 throw std::runtime_error("Wrong command-line parameters(toReduceDims not correct)!");
+
 
         outLengths = inLengths;
 
